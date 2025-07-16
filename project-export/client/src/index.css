@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+  
+  /* Custom Charcoal Gray colors - Optimized for contrast with cyan */
+  --charcoal-50: hsl(210, 8%, 97%);
+  --charcoal-100: hsl(210, 8%, 90%);
+  --charcoal-200: hsl(210, 8%, 80%);
+  --charcoal-300: hsl(210, 8%, 65%);
+  --charcoal-400: hsl(210, 8%, 55%);
+  --charcoal-500: hsl(210, 8%, 45%);
+  --charcoal-600: hsl(210, 8%, 35%);
+  --charcoal-700: hsl(210, 8%, 25%);
+  --charcoal-800: hsl(210, 8%, 15%);
+  --charcoal-900: hsl(210, 8%, 8%);
+  
+  /* Custom Matte Cyan colors - Based on #029fad */
+  --matte-cyan-50: hsl(185, 96%, 95%);
+  --matte-cyan-100: hsl(185, 96%, 88%);
+  --matte-cyan-200: hsl(185, 96%, 78%);
+  --matte-cyan-300: hsl(185, 96%, 68%);
+  --matte-cyan-400: hsl(185, 96%, 58%);
+  --matte-cyan-500: hsl(185, 96%, 35%);
+  --matte-cyan-600: hsl(185, 96%, 30%);
+  --matte-cyan-700: hsl(185, 96%, 25%);
+  --matte-cyan-800: hsl(185, 96%, 20%);
+  --matte-cyan-900: hsl(185, 96%, 15%);
+}
+
+.dark {
+  --background: hsl(210, 8%, 8%);
+  --foreground: hsl(210, 8%, 98%);
+  --muted: hsl(210, 8%, 15%);
+  --muted-foreground: hsl(210, 8%, 65%);
+  --popover: hsl(210, 8%, 8%);
+  --popover-foreground: hsl(210, 8%, 98%);
+  --card: hsl(210, 8%, 8%);
+  --card-foreground: hsl(210, 8%, 98%);
+  --border: hsl(210, 8%, 15%);
+  --input: hsl(210, 8%, 15%);
+  --primary: hsl(185, 96%, 35%);
+  --primary-foreground: hsl(210, 8%, 98%);
+  --secondary: hsl(210, 8%, 15%);
+  --secondary-foreground: hsl(210, 8%, 98%);
+  --accent: hsl(210, 8%, 15%);
+  --accent-foreground: hsl(210, 8%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 8%, 98%);
+  --ring: hsl(210, 8%, 84%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply dark;
+  }
+
+  body {
+    @apply font-sans antialiased bg-charcoal-900 text-gray-100;
+    background: linear-gradient(135deg, var(--charcoal-900) 0%, var(--charcoal-800) 30%, var(--charcoal-900) 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .bg-charcoal-50 { background-color: var(--charcoal-50); }
+  .bg-charcoal-100 { background-color: var(--charcoal-100); }
+  .bg-charcoal-200 { background-color: var(--charcoal-200); }
+  .bg-charcoal-300 { background-color: var(--charcoal-300); }
+  .bg-charcoal-400 { background-color: var(--charcoal-400); }
+  .bg-charcoal-500 { background-color: var(--charcoal-500); }
+  .bg-charcoal-600 { background-color: var(--charcoal-600); }
+  .bg-charcoal-700 { background-color: var(--charcoal-700); }
+  .bg-charcoal-800 { background-color: var(--charcoal-800); }
+  .bg-charcoal-900 { background-color: var(--charcoal-900); }
+
+  .bg-matte-cyan-50 { background-color: var(--matte-cyan-50); }
+  .bg-matte-cyan-100 { background-color: var(--matte-cyan-100); }
+  .bg-matte-cyan-200 { background-color: var(--matte-cyan-200); }
+  .bg-matte-cyan-300 { background-color: var(--matte-cyan-300); }
+  .bg-matte-cyan-400 { background-color: var(--matte-cyan-400); }
+  .bg-matte-cyan-500 { background-color: var(--matte-cyan-500); }
+  .bg-matte-cyan-600 { background-color: var(--matte-cyan-600); }
+  .bg-matte-cyan-700 { background-color: var(--matte-cyan-700); }
+  .bg-matte-cyan-800 { background-color: var(--matte-cyan-800); }
+  .bg-matte-cyan-900 { background-color: var(--matte-cyan-900); }
+
+  .text-charcoal-50 { color: var(--charcoal-50); }
+  .text-charcoal-100 { color: var(--charcoal-100); }
+  .text-charcoal-200 { color: var(--charcoal-200); }
+  .text-charcoal-300 { color: var(--charcoal-300); }
+  .text-charcoal-400 { color: var(--charcoal-400); }
+  .text-charcoal-500 { color: var(--charcoal-500); }
+  .text-charcoal-600 { color: var(--charcoal-600); }
+  .text-charcoal-700 { color: var(--charcoal-700); }
+  .text-charcoal-800 { color: var(--charcoal-800); }
+  .text-charcoal-900 { color: var(--charcoal-900); }
+
+  .text-matte-cyan-50 { color: var(--matte-cyan-50); }
+  .text-matte-cyan-100 { color: var(--matte-cyan-100); }
+  .text-matte-cyan-200 { color: var(--matte-cyan-200); }
+  .text-matte-cyan-300 { color: var(--matte-cyan-300); }
+  .text-matte-cyan-400 { color: var(--matte-cyan-400); }
+  .text-matte-cyan-500 { color: var(--matte-cyan-500); }
+  .text-matte-cyan-600 { color: var(--matte-cyan-600); }
+  .text-matte-cyan-700 { color: var(--matte-cyan-700); }
+  .text-matte-cyan-800 { color: var(--matte-cyan-800); }
+  .text-matte-cyan-900 { color: var(--matte-cyan-900); }
+
+  .border-charcoal-600 { border-color: var(--charcoal-600); }
+  .border-charcoal-700 { border-color: var(--charcoal-700); }
+  .border-matte-cyan-600 { border-color: var(--matte-cyan-600); }
+
+  .hover\:bg-charcoal-700:hover { background-color: var(--charcoal-700); }
+  .hover\:bg-matte-cyan-700:hover { background-color: var(--matte-cyan-700); }
+}
