@@ -139,6 +139,12 @@ The application uses three main entities:
 - Live flagged content preview
 - One-click file organization functionality
 
+**Database Integration**: Migrated from in-memory storage to PostgreSQL database:
+- Implemented DatabaseStorage class with full CRUD operations
+- Applied database schema with proper relations and constraints
+- Maintains all existing functionality while adding data persistence
+- Uses Drizzle ORM for type-safe database operations
+
 ### Key Design Decisions
 
 **Database Choice**: PostgreSQL with Drizzle ORM chosen for type safety and scalability over simpler solutions. Drizzle provides excellent TypeScript integration and migration management.
