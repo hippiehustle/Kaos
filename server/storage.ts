@@ -1,4 +1,6 @@
 import { users, scanSessions, scanResults, type User, type InsertUser, type ScanSession, type InsertScanSession, type ScanResult, type InsertScanResult } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, count, sum, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -195,4 +197,151 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createScanSession(insertSession: InsertScanSession): Promise<ScanSession> {
+    const [session] = await db
+      .insert(scanSessions)
+      .values(insertSession)
+      .returning();
+    return session;
+  }
+
+  async getScanSession(id: number): Promise<ScanSession | undefined> {
+    const [session] = await db.select().from(scanSessions).where(eq(scanSessions.id, id));
+    return session || undefined;
+  }
+
+  async updateScanSession(id: number, updates: Partial<ScanSession>): Promise<ScanSession | undefined> {
+    const [session] = await db
+      .update(scanSessions)
+      .set(updates)
+      .where(eq(scanSessions.id, id))
+      .returning();
+    return session || undefined;
+  }
+
+  async getActiveScanSessions(): Promise<ScanSession[]> {
+    return await db.select().from(scanSessions).where(eq(scanSessions.status, "active"));
+  }
+
+  async createScanResult(insertResult: InsertScanResult): Promise<ScanResult> {
+    const [result] = await db
+      .insert(scanResults)
+      .values(insertResult)
+      .returning();
+    return result;
+  }
+
+  async getScanResults(sessionId: number): Promise<ScanResult[]> {
+    return await db.select().from(scanResults).where(eq(scanResults.sessionId, sessionId));
+  }
+
+  async getNsfwResults(sessionId?: number): Promise<ScanResult[]> {
+    const conditions = [eq(scanResults.isNsfw, true)];
+    if (sessionId) {
+      conditions.push(eq(scanResults.sessionId, sessionId));
+    }
+    
+    return await db
+      .select()
+      .from(scanResults)
+      .where(and(...conditions))
+      .orderBy(desc(scanResults.createdAt));
+  }
+
+  async updateScanResult(id: number, updates: Partial<ScanResult>): Promise<ScanResult | undefined> {
+    const [result] = await db
+      .update(scanResults)
+      .set(updates)
+      .where(eq(scanResults.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async getStats(): Promise<{ totalFiles: number; nsfwFound: number; processed: number }> {
+    const [totalFilesResult] = await db
+      .select({ count: count() })
+      .from(scanResults);
+    
+    const [nsfwResult] = await db
+      .select({ count: count() })
+      .from(scanResults)
+      .where(eq(scanResults.isNsfw, true));
+    
+    const [processedResult] = await db
+      .select({ count: count() })
+      .from(scanResults)
+      .where(eq(scanResults.processed, true));
+
+    return {
+      totalFiles: totalFilesResult?.count || 0,
+      nsfwFound: nsfwResult?.count || 0,
+      processed: processedResult?.count || 0,
+    };
+  }
+
+  async organizeFiles(sessionId: number): Promise<{ moved: number; renamed: number; organized: ScanResult[] }> {
+    const sessionResults = await db
+      .select()
+      .from(scanResults)
+      .where(
+        and(
+          eq(scanResults.sessionId, sessionId),
+          eq(scanResults.isNsfw, true),
+          eq(scanResults.actionTaken, "none")
+        )
+      );
+    
+    const organized: ScanResult[] = [];
+    let moved = 0;
+    let renamed = 0;
+
+    for (const result of sessionResults) {
+      // Simulate file organization
+      const category = result.flagCategory || "flagged";
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const extension = result.filename.split('.').pop();
+      const newFilename = `${category}_${timestamp}_${result.id}.${extension}`;
+      const newPath = `/SecureScanner/${category}/${newFilename}`;
+      
+      const updatedResult = await this.updateScanResult(result.id, {
+        originalPath: result.filepath,
+        newPath: newPath,
+        filename: newFilename,
+        actionTaken: "moved"
+      });
+      
+      if (updatedResult) {
+        organized.push(updatedResult);
+        moved++;
+        renamed++;
+      }
+    }
+
+    return {
+      moved,
+      renamed,
+      organized
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();
