@@ -22,6 +22,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/scan-sessions/active", async (req, res) => {
+    try {
+      const sessions = await storage.getActiveScanSessions();
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active sessions" });
+    }
+  });
+
   app.get("/api/scan-sessions/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -45,15 +54,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(session);
     } catch (error) {
       res.status(500).json({ message: "Failed to update session" });
-    }
-  });
-
-  app.get("/api/scan-sessions/active", async (req, res) => {
-    try {
-      const sessions = await storage.getActiveScanSessions();
-      res.json(sessions);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch active sessions" });
     }
   });
 
