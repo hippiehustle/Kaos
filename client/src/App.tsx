@@ -15,6 +15,7 @@ import About from "@/pages/about";
 import Admin from "@/pages/admin";
 import BugReport from "@/pages/bug-report";
 import FeatureRequest from "@/pages/feature-request";
+import FileOrganizer from "@/pages/file-organizer";
 import NotFound from "@/pages/not-found";
 import BottomNavigation from "@/components/layout/bottom-navigation";
 import Header from "@/components/layout/header";
@@ -37,6 +38,12 @@ function Router() {
           <Route path="/admin" component={Admin} />
           <Route path="/bug-report" component={BugReport} />
           <Route path="/feature-request" component={FeatureRequest} />
+          <Route path="/organize">
+            {() => <FileOrganizer />}
+          </Route>
+          <Route path="/organize/:sessionId">
+            {(params) => <FileOrganizer sessionId={params.sessionId} />}
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </main>

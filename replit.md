@@ -149,6 +149,17 @@ The application uses three main entities:
 - Reports stored in localStorage
 - Full forms with severity/category/priority selection
 
+**Customizable File Organizer**: Advanced file organization system replacing simple "Move to Secure Folder":
+- Custom destination folder path selection
+- Four organization modes: By Category, By Date, By File Type, Custom
+- Date mode extracts dates from filenames/metadata with "Undetermined" fallback
+- File type mode groups into Images, Videos, Documents, Archives, Other
+- Quick preset buttons for By Date and By File Type sorting
+- Category and file type filter checkboxes
+- Live folder structure preview
+- Accessible from dashboard "Move NSFW" button and scan completion screen
+- API endpoint: POST /api/organize-custom with OrganizeOptions
+
 ### Previous Enhancements (January 2025)
 
 **Enhanced Color System**: Implemented optimized charcoal gray and matte cyan (#029fad) color scheme with mathematically pleasing contrast ratios for improved visual accessibility and user preference alignment.

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,12 +12,8 @@ import {
   Image, 
   Video,
   FolderOpen,
-  Download,
-  Trash2,
   MoveRight,
   AlertTriangle,
-  CheckCircle,
-  Clock
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +25,6 @@ interface ScanLandingProps {
 
 export default function ScanLanding({ sessionId }: ScanLandingProps) {
   const [, setLocation] = useLocation();
-  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,38 +33,9 @@ export default function ScanLanding({ sessionId }: ScanLandingProps) {
     enabled: !!sessionId,
   });
 
-  const { data: results = [], isLoading: resultsLoading } = useQuery<ScanResult[]>({
+  const { data: results = [] } = useQuery<ScanResult[]>({
     queryKey: ["/api/scan-results", sessionId],
     enabled: !!sessionId,
-  });
-
-  const organizeFilesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/organize-files/${sessionId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to organize files");
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/scan-results", sessionId] });
-      toast({
-        title: "Files organized successfully",
-        description: "Flagged files have been moved and renamed according to their categories.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Organization failed",
-        description: "There was an error organizing the files.",
-        variant: "destructive",
-      });
-    },
   });
 
   const pauseScanMutation = useMutation({
@@ -159,13 +124,7 @@ export default function ScanLanding({ sessionId }: ScanLandingProps) {
     }
   };
 
-  const handleOrganizeFiles = () => {
-    setIsProcessing(true);
-    organizeFilesMutation.mutate();
-    setTimeout(() => setIsProcessing(false), 2000);
-  };
-
-  const progress = session ? Math.round((session.processedFiles / Math.max(session.totalFiles, 1)) * 100) : 0;
+  const progress = session ? Math.round(((session.processedFiles ?? 0) / Math.max(session.totalFiles ?? 1, 1)) * 100) : 0;
   const flaggedResults = results.filter(r => r.isNsfw);
 
   if (sessionLoading) {
@@ -338,27 +297,17 @@ export default function ScanLanding({ sessionId }: ScanLandingProps) {
               </div>
               <h3 className="text-lg font-semibold text-gray-100">Organize Flagged Files</h3>
               <p className="text-sm text-gray-400">
-                Move all flagged files to categorized folders and rename them based on their content flags
+                Move and sort flagged files with custom destination, sorting mode, and filters
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Button
-                onClick={handleOrganizeFiles}
-                disabled={isProcessing || organizeFilesMutation.isPending}
+                onClick={() => setLocation(`/organize/${sessionId}`)}
                 className="bg-matte-cyan-600 hover:bg-matte-cyan-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2"
               >
-                {isProcessing ? (
-                  <>
-                    <Clock className="w-4 h-4 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <MoveRight className="w-4 h-4" />
-                    <span>Organize Files</span>
-                  </>
-                )}
+                <MoveRight className="w-4 h-4" />
+                <span>Organize Files</span>
               </Button>
               
               <Button
@@ -372,7 +321,7 @@ export default function ScanLanding({ sessionId }: ScanLandingProps) {
             </div>
 
             <div className="text-xs text-gray-400 text-center pt-2 border-t border-charcoal-600">
-              Files will be organized into: /SecureScanner/[category]/[renamed_files]
+              Customize destination folder, sorting mode, and file filters
             </div>
           </CardContent>
         </Card>
