@@ -3,30 +3,12 @@ import { FolderOpen, Download, FileText, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export default function QuickActions() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const organizeAllMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/organize-all"),
-    onSuccess: async (res) => {
-      const data = await res.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/nsfw-results"] });
-      toast({
-        title: "Files organized",
-        description: `Moved ${data.moved} file${data.moved !== 1 ? "s" : ""} to secure folders.`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Organization failed",
-        description: "Could not organize files. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  const [, setLocation] = useLocation();
 
   const clearHistoryMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/scan-history"),
@@ -106,12 +88,11 @@ export default function QuickActions() {
       
       <div className="grid grid-cols-2 gap-3">
         <Button
-          onClick={() => organizeAllMutation.mutate()}
-          disabled={organizeAllMutation.isPending}
+          onClick={() => setLocation("/organize")}
           className="bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium py-3 px-4 rounded-xl transition-all duration-200 flex flex-col items-center space-y-1 border border-red-500/30 h-auto"
         >
           <FolderOpen className="w-5 h-5" />
-          <span className="text-xs">{organizeAllMutation.isPending ? "Moving..." : "Move NSFW"}</span>
+          <span className="text-xs">Move NSFW</span>
         </Button>
         
         <Button
