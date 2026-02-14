@@ -137,6 +137,22 @@ The application uses these entities:
 
 ### Recent Major Enhancements (February 2026)
 
+**Folder Scanning with Intelligent Project Detection**: Added ability to scan entire folders recursively:
+- File upload modal now has Files/Folder toggle for selecting scan mode
+- Folder mode uses `webkitdirectory` to select an entire folder and scan all subfolders
+- Automatically filters to media files only (images, videos, audio)
+- Detects project/software scaffolding folders by looking for indicators (package.json, .git, Cargo.toml, requirements.txt, etc.)
+- Media found inside project folders is tagged as `isProjectFile` in scan results
+- File organizer copies project files instead of moving them to preserve project integrity
+- Schema fields: `isProjectFile` (boolean), `relativePath` (text) on scan_results table
+- Index-based metadata array ensures correct mapping even with duplicate filenames across subfolders
+
+**Windows EXE Build**: Added Electron packaging for Windows desktop:
+- `electron/main.js` entry point loads built web app in BrowserWindow
+- `electron-builder.yml` configures NSIS installer for Windows x64
+- GitHub Actions workflow builds Windows .exe after APK, creating combined release
+
+
 **Replit Auth Integration**: Full authentication system using Replit as OpenID Connect provider:
 - Supports Google, GitHub, X, Apple, and email/password login
 - Landing page shown for unauthenticated users with feature showcase
