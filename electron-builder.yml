@@ -13,13 +13,10 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: dist/public/logo.png
+  icon: build/icon.ico
 nsis:
   oneClick: true
   perMachine: false
   allowToChangeInstallationDirectory: false
-  installerIcon: dist/public/logo.png
-  uninstallerIcon: dist/public/logo.png
-  installerHeaderIcon: dist/public/logo.png
   deleteAppDataOnUninstall: false
   shortcutName: SecureScanner
