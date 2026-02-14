@@ -1,6 +1,7 @@
 package com.securescanner.app.data.repository
 
 import com.securescanner.app.data.api.OsintIndustriesApi
+import com.securescanner.app.data.logging.AppLogger
 import com.securescanner.app.data.model.CheckStatus
 import com.securescanner.app.data.model.MaigretSite
 import com.securescanner.app.data.model.OsintIndustriesCredits
@@ -24,12 +25,13 @@ import javax.inject.Singleton
 @Singleton
 class OsintRepository @Inject constructor(
     private val osintIndustriesApi: OsintIndustriesApi,
-    private val maigretSiteLoader: MaigretSiteLoader
+    private val maigretSiteLoader: MaigretSiteLoader,
+    private val logger: AppLogger
 ) {
     // Lightweight HTTP client for Maigret checks (short timeouts)
     private val checkClient = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(8, TimeUnit.SECONDS)
         .followRedirects(true)
         .build()
 
@@ -38,22 +40,31 @@ class OsintRepository @Inject constructor(
 
     fun getAllSites(): List<MaigretSite> = maigretSiteLoader.loadSites()
 
+    /** Only sites with a valid URL template containing {username} */
+    fun getSearchableSites(): List<MaigretSite> =
+        maigretSiteLoader.loadSites().filter { it.url.contains("{username}") }
+
     fun getAllTags(): List<String> = maigretSiteLoader.getAllTags()
 
     fun searchSites(query: String): List<MaigretSite> = maigretSiteLoader.searchSites(query)
 
     val totalSiteCount: Int get() = maigretSiteLoader.totalSiteCount
 
+    val searchableSiteCount: Int get() = getSearchableSites().size
+
     /**
-     * Check a username across all Maigret sites, emitting results as they complete.
-     * Uses a semaphore to limit concurrent requests.
+     * Check a username across searchable Maigret sites, emitting results as they complete.
+     * Only checks sites that have a valid {username} URL template.
      */
     fun checkUsername(
         username: String,
-        sites: List<MaigretSite> = getAllSites()
+        sites: List<MaigretSite>? = null
     ): Flow<UsernameCheckResult> = flow {
+        val targetSites = (sites ?: getSearchableSites()).filter { it.url.contains("{username}") }
+        logger.i("OSINT", "Starting username search for '$username' across ${targetSites.size} sites")
+
         coroutineScope {
-            val results = sites.map { site ->
+            val results = targetSites.map { site ->
                 async {
                     semaphore.withPermit {
                         checkSingleSite(username, site)
@@ -64,6 +75,7 @@ class OsintRepository @Inject constructor(
                 emit(deferred.await())
             }
         }
+        logger.i("OSINT", "Username search complete for '$username'")
     }.flowOn(Dispatchers.IO)
 
     /**
@@ -73,7 +85,8 @@ class OsintRepository @Inject constructor(
         username: String,
         sites: List<MaigretSite>
     ): List<UsernameCheckResult> = coroutineScope {
-        sites.map { site ->
+        val searchable = sites.filter { it.url.contains("{username}") }
+        searchable.map { site ->
             async(Dispatchers.IO) {
                 semaphore.withPermit {
                     checkSingleSite(username, site)
@@ -84,38 +97,71 @@ class OsintRepository @Inject constructor(
 
     private fun checkSingleSite(username: String, site: MaigretSite): UsernameCheckResult {
         val url = site.url.replace("{username}", username)
-        return try {
-            val request = Request.Builder()
-                .url(url)
-                .head()
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
 
-            val response = checkClient.newCall(request).execute()
+        // Skip invalid URLs
+        if (!url.startsWith("http")) {
+            return UsernameCheckResult(
+                site = site, found = false, url = url,
+                status = CheckStatus.ERROR, httpStatus = null
+            )
+        }
+
+        return try {
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+            // For "message" checkType, we need the body — use GET
+            // For others, HEAD is faster
+            if (site.checkType == "message") {
+                requestBuilder.get()
+            } else {
+                requestBuilder.head()
+            }
+
+            val response = checkClient.newCall(requestBuilder.build()).execute()
             val statusCode = response.code
-            response.close()
 
             val found = when (site.checkType) {
-                "status_code" -> statusCode in 200..299
-                "response_url" -> statusCode in 200..399
-                "message" -> statusCode in 200..299 // Simplified: HEAD can't check body
-                else -> statusCode in 200..299
+                "status_code" -> {
+                    response.close()
+                    statusCode in 200..299
+                }
+                "message" -> {
+                    // Check if the error message is absent (= profile found)
+                    val body = response.body?.string() ?: ""
+                    response.close()
+                    if (statusCode !in 200..299) {
+                        false
+                    } else if (site.errorMsg.isNullOrEmpty()) {
+                        // No error message to check — fall back to status code
+                        true
+                    } else {
+                        // Profile found if the error message is NOT present
+                        !body.contains(site.errorMsg, ignoreCase = true)
+                    }
+                }
+                "response_url" -> {
+                    // If the request wasn't redirected to a generic page, the profile exists
+                    val finalUrl = response.request.url.toString()
+                    response.close()
+                    statusCode in 200..399 && finalUrl.contains(username, ignoreCase = true)
+                }
+                else -> {
+                    response.close()
+                    statusCode in 200..299
+                }
             }
 
             UsernameCheckResult(
-                site = site,
-                found = found,
-                url = url,
+                site = site, found = found, url = url,
                 status = if (found) CheckStatus.FOUND else CheckStatus.NOT_FOUND,
                 httpStatus = statusCode
             )
         } catch (e: Exception) {
             UsernameCheckResult(
-                site = site,
-                found = false,
-                url = url,
-                status = CheckStatus.ERROR,
-                httpStatus = null
+                site = site, found = false, url = url,
+                status = CheckStatus.ERROR, httpStatus = null
             )
         }
     }
@@ -126,15 +172,23 @@ class OsintRepository @Inject constructor(
         apiKey: String,
         type: String, // "email" or "phone"
         query: String
-    ): Result<JsonObject> = runCatching {
-        val response = osintIndustriesApi.search(apiKey, type, query)
-        if (response.isSuccessful) {
-            response.body() ?: throw Exception("Empty response")
-        } else {
-            throw Exception("API error: ${response.code()} ${response.message()}")
+    ): Result<JsonObject> {
+        logger.i("OSINT-Industries", "Searching $type: $query")
+        return runCatching {
+            val response = osintIndustriesApi.search(apiKey, type, query)
+            if (response.isSuccessful) {
+                logger.s("OSINT-Industries", "Search succeeded for $query")
+                response.body() ?: throw Exception("Empty response")
+            } else {
+                val msg = "API error: ${response.code()} ${response.message()}"
+                logger.e("OSINT-Industries", msg)
+                throw Exception(msg)
+            }
         }
     }
 
-    suspend fun osintIndustriesCredits(apiKey: String): Result<OsintIndustriesCredits> =
-        runCatching { osintIndustriesApi.getCredits(apiKey) }
+    suspend fun osintIndustriesCredits(apiKey: String): Result<OsintIndustriesCredits> {
+        logger.d("OSINT-Industries", "Checking credits")
+        return runCatching { osintIndustriesApi.getCredits(apiKey) }
+    }
 }

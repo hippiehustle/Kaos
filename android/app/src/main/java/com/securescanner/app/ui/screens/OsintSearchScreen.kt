@@ -2,6 +2,7 @@ package com.securescanner.app.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +66,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.securescanner.app.data.datastore.SettingsDataStore
+import com.securescanner.app.data.logging.AppLogger
 import com.securescanner.app.data.model.CheckStatus
 import com.securescanner.app.data.model.UsernameCheckResult
 import com.securescanner.app.data.repository.OsintRepository
@@ -93,7 +95,8 @@ import javax.inject.Inject
 @HiltViewModel
 class OsintSearchViewModel @Inject constructor(
     private val osintRepository: OsintRepository,
-    val settingsDataStore: SettingsDataStore
+    val settingsDataStore: SettingsDataStore,
+    private val logger: AppLogger
 ) : ViewModel() {
 
     // Username search state
@@ -130,7 +133,7 @@ class OsintSearchViewModel @Inject constructor(
     private val _credits = MutableStateFlow<Int?>(null)
     val credits: StateFlow<Int?> = _credits.asStateFlow()
 
-    val siteCount: Int get() = osintRepository.totalSiteCount
+    val siteCount: Int get() = osintRepository.searchableSiteCount
 
     val allTags: List<String> get() = osintRepository.getAllTags()
 
@@ -142,13 +145,14 @@ class OsintSearchViewModel @Inject constructor(
         _foundCount.value = 0
 
         val sites = if (selectedTags.isEmpty()) {
-            osintRepository.getAllSites()
+            osintRepository.getSearchableSites()
         } else {
-            osintRepository.getAllSites().filter { site ->
+            osintRepository.getSearchableSites().filter { site ->
                 site.tags.any { it in selectedTags }
             }
         }
         _totalSites.value = sites.size
+        logger.i("OSINT-UI", "Username search initiated: '$username' across ${sites.size} sites")
 
         searchJob = viewModelScope.launch {
             osintRepository.checkUsername(username, sites).collect { result ->
@@ -162,12 +166,14 @@ class OsintSearchViewModel @Inject constructor(
                 }
             }
             _isSearching.value = false
+            logger.s("OSINT-UI", "Search complete: ${_foundCount.value} found out of ${sites.size} checked")
         }
     }
 
     fun cancelSearch() {
         searchJob?.cancel()
         _isSearching.value = false
+        logger.w("OSINT-UI", "Username search cancelled by user")
     }
 
     fun searchOsintIndustries(apiKey: String, type: String, query: String) {
@@ -348,7 +354,10 @@ private fun UsernameSearchTab(viewModel: OsintSearchViewModel) {
 
                     if (isSearching) {
                         OutlinedButton(
-                            onClick = { viewModel.cancelSearch() },
+                            onClick = {
+                                viewModel.cancelSearch()
+                                Toast.makeText(context, "Search cancelled", Toast.LENGTH_SHORT).show()
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = FlagExplicit)
                         ) {
@@ -360,6 +369,7 @@ private fun UsernameSearchTab(viewModel: OsintSearchViewModel) {
                             onClick = {
                                 if (username.isNotBlank()) {
                                     viewModel.searchUsername(username.trim(), selectedTags)
+                                    Toast.makeText(context, "Search started for '${username.trim()}'", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -627,6 +637,7 @@ private fun OsintIndustriesTab(viewModel: OsintSearchViewModel) {
                             if (query.isNotBlank()) {
                                 viewModel.searchOsintIndustries(apiKey, searchType, query.trim())
                                 viewModel.loadCredits(apiKey)
+                                Toast.makeText(context, "OSINT Industries search started", Toast.LENGTH_SHORT).show()
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),

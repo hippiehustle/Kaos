@@ -44,6 +44,9 @@ class SettingsDataStore @Inject constructor(
         // OSINT
         val OSINT_INDUSTRIES_API_KEY = stringPreferencesKey("osint_industries_api_key")
 
+        // App state
+        val FIRST_BOOT_COMPLETE = booleanPreferencesKey("first_boot_complete")
+
         // Reports (stored as JSON string)
         val LOCAL_REPORTS = stringPreferencesKey("local_reports")
     }
@@ -147,6 +150,15 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun setOsintIndustriesApiKey(key: String) {
         dataStore.edit { prefs -> prefs[OSINT_INDUSTRIES_API_KEY] = key }
+    }
+
+    // First boot
+    val firstBootComplete: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[FIRST_BOOT_COMPLETE] ?: false
+    }
+
+    suspend fun setFirstBootComplete(complete: Boolean) {
+        dataStore.edit { prefs -> prefs[FIRST_BOOT_COMPLETE] = complete }
     }
 
     // Local reports (JSON)
