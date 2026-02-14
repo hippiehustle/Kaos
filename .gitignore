@@ -1,6 +1,57 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tar.gz
+
+# OS files
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+sentisight-config.json
+
+# Server
 server/public
+
+# Vite
 vite.config.ts.*
-*.tar.gz.sentisight-config.json
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+android/.cxx/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Electron
+electron/dist/
+electron/out/
+
+# Capacitor
+capacitor.config.ts.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Config
+.config/
+.local/
