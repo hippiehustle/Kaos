@@ -37,22 +37,19 @@ object NetworkModule {
         return Interceptor { chain ->
             val serverUrl = runBlocking { settingsDataStore.serverUrl.first() }
             if (serverUrl.isBlank()) {
-                return@Interceptor chain.proceed(chain.request())
+                throw java.io.IOException("No server URL configured. Go to Settings and set your server URL.")
             }
             val baseUrl = serverUrl.let { if (!it.endsWith("/")) "$it/" else it }
             val newUrl = baseUrl.toHttpUrlOrNull()
-            if (newUrl != null) {
-                val originalUrl = chain.request().url
-                val updatedUrl = originalUrl.newBuilder()
-                    .scheme(newUrl.scheme)
-                    .host(newUrl.host)
-                    .port(newUrl.port)
-                    .build()
-                val newRequest = chain.request().newBuilder().url(updatedUrl).build()
-                chain.proceed(newRequest)
-            } else {
-                chain.proceed(chain.request())
-            }
+                ?: throw java.io.IOException("Invalid server URL: $serverUrl. Check your server URL in Settings.")
+            val originalUrl = chain.request().url
+            val updatedUrl = originalUrl.newBuilder()
+                .scheme(newUrl.scheme)
+                .host(newUrl.host)
+                .port(newUrl.port)
+                .build()
+            val newRequest = chain.request().newBuilder().url(updatedUrl).build()
+            chain.proceed(newRequest)
         }
     }
 
