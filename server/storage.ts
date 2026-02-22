@@ -334,19 +334,23 @@ function getSubfolder(result: ScanResult, mode: OrganizeOptions["mode"]): string
 }
 
 function extractDateFromFilename(filename: string): string | null {
-  const patterns = [
-    /(\d{4})-(\d{2})-(\d{2})/,
-    /(\d{4})(\d{2})(\d{2})/,
-    /(\d{2})-(\d{2})-(\d{4})/,
-    /(\d{2})\.(\d{2})\.(\d{4})/,
+  // Each entry: [regex, (match) => [year, month, day]]
+  const patterns: Array<[RegExp, (m: RegExpMatchArray) => [string, string, string]]> = [
+    [/(\d{4})-(\d{2})-(\d{2})/, (m) => [m[1], m[2], m[3]]],           // YYYY-MM-DD
+    [/(?<!\d)(\d{4})(\d{2})(\d{2})(?!\d)/, (m) => [m[1], m[2], m[3]]], // YYYYMMDD (no surrounding digits)
+    [/(\d{2})-(\d{2})-(\d{4})/, (m) => [m[3], m[1], m[2]]],           // MM-DD-YYYY
+    [/(\d{2})\.(\d{2})\.(\d{4})/, (m) => [m[3], m[2], m[1]]],         // DD.MM.YYYY
   ];
-  for (const pattern of patterns) {
+  for (const [pattern, extract] of patterns) {
     const match = filename.match(pattern);
     if (match) {
-      if (match[3] && match[3].length === 4) {
-        return `${match[3]}-${match[2]}-${match[1]}`;
+      const [year, month, day] = extract(match);
+      const y = parseInt(year, 10);
+      const mo = parseInt(month, 10);
+      const d = parseInt(day, 10);
+      if (y >= 1900 && y <= 2099 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       }
-      return `${match[1]}-${match[2]}-${match[3]}`;
     }
   }
   return null;
